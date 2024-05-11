@@ -80,12 +80,19 @@ def calculate_nmse(original, quantized):
     
     return nmse
 
-def norm_tensor(tensor):
+def norm_zero_score_tensor(tensor):
     tensor_float = tensor.float()
     mean_torch = tensor_float.mean()
     std_torch = tensor_float.std()
     x_standardized_torch = (tensor_float - mean_torch) / std_torch
     return x_standardized_torch
+
+def norm_min_max_tensor(tensor):
+    tensor_float = tensor.float()
+    x_min_torch = tensor_float.min()
+    x_max_torch = tensor_float.max()
+    x_normalized_torch = (tensor_float - x_min_torch) / (x_max_torch - x_min_torch)
+    return x_normalized_torch
 
 
 if __name__=="__main__":
@@ -122,15 +129,16 @@ if __name__=="__main__":
     out_max_int8 = tensor_out_scale_max.clamp(torch.iinfo(torch.int8).min, torch.iinfo(torch.int8).max).to(torch.int8)
     print(tensor_out_scale_min[0][0][0], tensor_out_scale_max[0][0][0], tflite_tensor_int32[0][0][0],tensor_ort[0][0][0], out[0][0][0])
 
-    out_min_int8_norm = norm_tensor(out_min_int8)
-    out_max_int8_norm = norm_tensor(out_max_int8)
-    tensor_ort_norm   = norm_tensor(tensor_ort)
-    tflite_tensor_int32 = norm_tensor(tflite_tensor_int32)
+    out_min_int8_norm = norm_min_max_tensor(out_min_int8)
+    out_max_int8_norm = norm_min_max_tensor(out_max_int8)
+    tensor_ort_norm   = norm_min_max_tensor(tensor_ort)
+    tflite_tensor_int32 = norm_min_max_tensor(tflite_tensor_int32)
 
-    calculate_nmse(out_min_int8_norm, out_max_int8_norm)
-    calculate_nmse(out_min_int8_norm, tensor_ort_norm)
-    calculate_nmse(out_max_int8_norm, tensor_ort_norm)
-    calculate_nmse(tflite_tensor_int32, tensor_ort_norm)
+    print(tensor_ort_norm[0][0][0], tflite_tensor_int32[0][0][0], out_min_int8_norm[0][0][0], out_max_int8_norm[0][0][0])
+    calculate_mse(out_min_int8_norm, out_max_int8_norm)
+    calculate_mse(out_min_int8_norm, tensor_ort_norm)
+    calculate_mse(out_max_int8_norm, tensor_ort_norm)
+    calculate_mse(tflite_tensor_int32, tensor_ort_norm)
 
 
 
